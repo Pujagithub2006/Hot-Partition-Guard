@@ -1,0 +1,154 @@
+# Hot_Partition_Guard - Part 1 Issue Backlog Automation
+#
+# Purpose:
+#   Reads `issues/part1-backlog.yml` and creates one GitHub issue per entry.
+#   Idempotent: skips issues whose title already exists in the open or closed state.
+#   Bootstraps labels defined in the same YAML file before creating issues.
+#
+# Trigger:
+#   - push to `main` when the backlog YAML changes
+#   - manual dispatch via the Actions tab
+#
+# Permissions:
+#   - contents: read (checkout)
+#   - issues: write (create issues, create labels, list existing issues)
+#
+# Notes:
+#   - The default GITHUB_TOKEN cannot add issues to GitHub Projects v2 boards.
+#     If project-board integration is required, add a `PROJECT_TOKEN` repository
+#     secret with `project` scope and uncomment the optional step at the end.
+
+name: Create Part 1 Issue Backlog
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'issues/part1-backlog.yml'
+      - '.github/workflows/create-part1-issues.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: create-part1-issues
+  cancel-in-progress: false
+
+jobs:
+  create-issues:
+    name: Materialize Part 1 Backlog
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Validate backlog file exists
+        run: |
+          if [ ! -f issues/part1-backlog.yml ]; then
+            echo "Backlog file not found at issues/part1-backlog.yml"
+            exit 1
+          fi
+
+      - name: Install yq
+        run: |
+          sudo wget -qO /usr/local/bin/yq \
+            https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+          sudo chmod +x /usr/local/bin/yq
+          yq --version
+
+      - name: Validate backlog structure
+        run: |
+          yq eval '.issues | type' issues/part1-backlog.yml | grep -qx sequence \
+            || { echo "Expected top-level 'issues' to be a sequence"; exit 1; }
+          COUNT=$(yq eval '.issues | length' issues/part1-backlog.yml)
+          echo "Backlog contains ${COUNT} issue definitions"
+          if [ "$COUNT" -eq 0 ]; then
+            echo "No issues defined in backlog"
+            exit 1
+          fi
+
+      - name: Bootstrap labels
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: |
+          COUNT=$(yq eval '.labels | length' issues/part1-backlog.yml)
+          echo "Bootstrapping ${COUNT} labels"
+
+          for i in $(seq 0 $((COUNT - 1))); do
+            NAME=$(yq eval ".labels[$i].name" issues/part1-backlog.yml)
+            COLOR=$(yq eval ".labels[$i].color" issues/part1-backlog.yml)
+            DESC=$(yq eval ".labels[$i].description" issues/part1-backlog.yml)
+
+            if gh label list --repo "$REPO" --search "$NAME" --json name --jq ".[] | select(.name == \"$NAME\") | .name" | grep -qx "$NAME"; then
+              echo "Label exists, updating: $NAME"
+              gh label edit "$NAME" --repo "$REPO" --color "$COLOR" --description "$DESC"
+            else
+              echo "Creating label: $NAME"
+              gh label create "$NAME" --repo "$REPO" --color "$COLOR" --description "$DESC"
+            fi
+          done
+
+      - name: Create issues from backlog
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: |
+          COUNT=$(yq eval '.issues | length' issues/part1-backlog.yml)
+          CREATED=0
+          SKIPPED=0
+
+          for i in $(seq 0 $((COUNT - 1))); do
+            TITLE=$(yq eval ".issues[$i].title" issues/part1-backlog.yml)
+            BODY=$(yq eval ".issues[$i].body" issues/part1-backlog.yml)
+            LABELS=$(yq eval ".issues[$i].labels | join(\",\")" issues/part1-backlog.yml)
+
+            echo "-----------------------------------------------"
+            echo "Processing issue index ${i}"
+            echo "Title: ${TITLE}"
+            echo "Labels: ${LABELS}"
+
+            EXISTING=$(gh issue list \
+              --repo "$REPO" \
+              --state all \
+              --search "\"$TITLE\" in:title" \
+              --json number,title \
+              --jq ".[] | select(.title == \"$TITLE\") | .number" \
+              | head -n 1)
+
+            if [ -n "$EXISTING" ]; then
+              echo "Skipped: issue already exists as #${EXISTING}"
+              SKIPPED=$((SKIPPED + 1))
+              continue
+            fi
+
+            gh issue create \
+              --repo "$REPO" \
+              --title "$TITLE" \
+              --body "$BODY" \
+              --label "$LABELS"
+
+            CREATED=$((CREATED + 1))
+          done
+
+          echo "-----------------------------------------------"
+          echo "Summary"
+          echo "Created: ${CREATED}"
+          echo "Skipped: ${SKIPPED}"
+          echo "Total:   ${COUNT}"
+
+      # Optional: attach issues to a GitHub Projects v2 board.
+      # Requires a repository secret named PROJECT_TOKEN with `project` scope.
+      # Uncomment and set PROJECT_URL to the target project URL.
+      #
+      # - name: Add issues to project board
+      #   env:
+      #     GH_TOKEN: ${{ secrets.PROJECT_TOKEN }}
+      #   run: |
+      #     PROJECT_URL="https://github.com/users/<owner>/projects/<number>"
+      #     while read -r issue_url; do
+      #       gh project item-add --owner <owner> --url "$issue_url"
+      #     done < <(gh issue list --repo "${{ github.repository }}" --label part-1 --json url --jq '.[].url')

@@ -1,0 +1,701 @@
+# Hot_Partition_Guard - Part 1: Pure Spring Framework
+# Milestone: feature/01-pure-spring-core
+# Blueprint: The Spring Foundations - High-Concurrency Flash-Sale & Seat Reservation Engine
+#
+# Usage:
+#   Push this file to `main`. The workflow `.github/workflows/create-part1-issues.yml`
+#   reads it and creates one GitHub issue per entry, idempotently (deduplicated by title).
+#
+# Conventions:
+#   - Titles follow Conventional Commits (chore / feat / test / docs / refactor)
+#   - Scope in parentheses maps to the affected concern or module
+#   - Bodies use Context -> Acceptance Criteria -> Technical Notes -> Deliverables -> References
+#   - No emojis. No decorative symbols. Structured Markdown only.
+
+milestone: "Part 1 - Pure Spring Core"
+
+labels:
+  - name: "part-1"
+    color: "1d76db"
+    description: "Part 1 - Pure Spring Framework"
+  - name: "chore"
+    color: "c5def5"
+    description: "Build, tooling, or maintenance task"
+  - name: "build"
+    color: "bfd4f2"
+    description: "Build system and dependency management"
+  - name: "feat"
+    color: "0e8a16"
+    description: "New feature or capability"
+  - name: "test"
+    color: "f9d0c4"
+    description: "Test coverage or test harness"
+  - name: "docs"
+    color: "0075ca"
+    description: "Documentation"
+  - name: "container"
+    color: "5319e7"
+    description: "IoC container, dependency injection, bean lifecycle"
+  - name: "persistence"
+    color: "8b5cf6"
+    description: "JPA, Hibernate, transactions"
+  - name: "strategy"
+    color: "0e8a16"
+    description: "Strategy pattern and dynamic resolution"
+  - name: "service"
+    color: "0e8a16"
+    description: "Service layer"
+  - name: "lifecycle"
+    color: "5319e7"
+    description: "Bean lifecycle callbacks"
+  - name: "aop"
+    color: "d93f0b"
+    description: "Aspects, proxies, interceptors"
+  - name: "proxy"
+    color: "d93f0b"
+    description: "JDK and CGLIB proxy mechanics"
+  - name: "transaction"
+    color: "fbca04"
+    description: "Transaction demarcation and propagation"
+  - name: "propagation"
+    color: "fbca04"
+    description: "Transaction propagation semantics"
+  - name: "web"
+    color: "006b75"
+    description: "Spring MVC and servlet internals"
+  - name: "servlet"
+    color: "006b75"
+    description: "DispatcherServlet and servlet lifecycle"
+  - name: "resolver"
+    color: "006b75"
+    description: "HandlerMethodArgumentResolver"
+  - name: "benchmark"
+    color: "b60205"
+    description: "Performance measurement and profiling"
+  - name: "hpg-core"
+    color: "ededed"
+    description: "Module: hpg-core"
+  - name: "hpg-domain"
+    color: "ededed"
+    description: "Module: hpg-domain"
+
+issues:
+  - title: "chore: scaffold multi-module maven project and pure spring zero-boot dependencies"
+    labels: ["part-1", "chore", "build", "hpg-core", "hpg-domain"]
+    body: |
+      ## Context
+
+      Establish the foundational multi-module Maven structure for Part 1 of Hot_Partition_Guard.
+      The `hpg-core` module must remain entirely free of Spring Boot artifacts so that all
+      container, AOP, and JPA wiring is explicit and visible. This is a deliberate constraint:
+      Part 1 exists to expose the mechanics that Spring Boot later hides.
+
+      ## Acceptance Criteria
+
+      - [ ] Parent POM (`com.engine:hot-partition-guard:1.0.0-SNAPSHOT`) declares `<packaging>pom</packaging>` and a `<modules>` block referencing `hpg-domain` and `hpg-core`
+      - [ ] `hpg-platform` and `hpg-security` are declared but commented out (activated in Parts 2 and 3)
+      - [ ] `<dependencyManagement>` pins: Spring Framework 7.0.8, Spring Boot 4.0.6 (BOM import only), Hibernate ORM 7.4.10, Jakarta Persistence 3.2.0, Jakarta Servlet 6.1.0, HikariCP 7.1.0, PostgreSQL JDBC 42.7.13, SLF4J 2.0.20, Logback 1.6.4, Flyway 12.11.0
+      - [ ] Test dependencies pinned: JUnit 5.11.4, AssertJ 3.27.2, Testcontainers 2.0.5 (BOM + module coordinates updated for 2.x), AspectJ Weaver 1.9.22.1
+      - [ ] `hpg-core` POM declares `spring-context`, `spring-orm`, `spring-tx`, `spring-webmvc`, `spring-aop`, `spring-aspects`, `aspectjweaver`, `hibernate-core`, `jakarta.persistence-api`, `jakarta.servlet-api`, `HikariCP`, `postgresql`, `slf4j-api`, `logback-classic`
+      - [ ] `hpg-domain` POM declares **only** `jakarta.persistence-api` at compile scope (no Spring, no Hibernate)
+      - [ ] `maven-enforcer-plugin` in `hpg-core` bans `org.springframework.boot:*` and fails the build on violation
+      - [ ] Parent enforcer enforces Java `[25,)` and Maven `[3.9,)`
+      - [ ] `mvn -q clean verify` succeeds from a clean local repository
+      - [ ] `mvn -pl hpg-core dependency:tree "-Dincludes=org.springframework.boot"` produces empty output
+
+      ## Technical Notes
+
+      - Use `<maven.compiler.release>25</maven.compiler.release>`; do not set `source` / `target` only
+      - Testcontainers 2.0.x renamed module artifacts. Use `org.testcontainers:testcontainers-postgresql` and `org.testcontainers:testcontainers-junit-jupiter`, not the pre-2.0 coordinates
+      - PowerShell requires quoting on `-D` arguments containing dots. Always run as `"-Dincludes=org.springframework.boot"`
+      - The banned-dependencies rule is the enforceable contract of Part 1. It must remain active until Part 2 begins
+
+      ## Deliverables
+
+      - `pom.xml` (parent)
+      - `hpg-core/pom.xml`
+      - `hpg-domain/pom.xml`
+      - `hpg-platform/pom.xml` (placeholder)
+      - `hpg-security/pom.xml` (placeholder)
+      - `.gitignore`
+
+      ## References
+
+      - Blueprint: Part 1, Section 1 (IoC, DI and Container Lifecycles)
+      - Depends on: none
+      - Blocks: issues 2 through 14
+
+  - title: "feat(container): bootstrap AnnotationConfigApplicationContext and manual JpaTransactionManager"
+    labels: ["part-1", "feat", "container", "persistence", "hpg-core"]
+    body: |
+      ## Context
+
+      Initialize the IoC container programmatically with no Spring Boot, no `spring.factories`,
+      and no auto-configuration. Wire the JPA infrastructure, `EntityManagerFactory`, and
+      `JpaTransactionManager` manually. This produces the runtime backbone that every
+      subsequent Part 1 issue builds on.
+
+      ## Acceptance Criteria
+
+      - [ ] `com.engine.core.config.AppConfig` annotated with `@Configuration`, `@EnableTransactionManagement`, `@EnableAspectJAutoProxy`, `@ComponentScan("com.engine.core")`
+      - [ ] `com.engine.core.config.PersistenceConfig` provides `@Bean` methods for:
+        - `DataSource` (HikariCP against a PostgreSQL instance configured through environment variables)
+        - `LocalContainerEntityManagerFactoryBean` with `packagesToScan = "com.engine.domain"`
+        - `JpaTransactionManager`
+        - `PersistenceExceptionTranslationPostProcessor`
+      - [ ] `com.engine.core.bootstrap.PureSpringBootstrap` starts via `new AnnotationConfigApplicationContext(AppConfig.class, PersistenceConfig.class)`
+      - [ ] Container starts with zero XML and logs the number of beans loaded at startup
+      - [ ] `EntityManagerFactory` bean is non-null and resolves metadata for `com.engine.domain.Seat`
+      - [ ] Integration test annotated with `@SpringJUnitConfig` proves context load, transaction begin, and transaction commit
+      - [ ] PostgreSQL is supplied via Testcontainers 2.0.5 in the integration test only; no hardcoded connection string in production code
+
+      ## Technical Notes
+
+      - Hibernate properties set explicitly:
+        - `hibernate.dialect=org.hibernate.dialect.PostgreSQLDialect`
+        - `hibernate.hbm2ddl.auto=validate` (schema ownership moves to Flyway in Part 2)
+        - `hibernate.show_sql=false`, `hibernate.format_sql=true`
+      - Do not rely on `HibernateJpaVendorAdapter` defaults alone. Explicit properties are the teaching point
+      - Wrap `EntityManagerFactory` construction so `PersistenceException` surfaces with the failing property name
+
+      ## Deliverables
+
+      - `hpg-core/src/main/java/com/engine/core/config/AppConfig.java`
+      - `hpg-core/src/main/java/com/engine/core/config/PersistenceConfig.java`
+      - `hpg-core/src/main/java/com/engine/core/bootstrap/PureSpringBootstrap.java`
+      - `hpg-core/src/test/java/com/engine/core/config/PersistenceConfigIT.java`
+
+      ## References
+
+      - Blueprint: Part 1, Section 1
+      - Depends on: issue 1
+      - Blocks: issues 3, 6, 7, 10, 11
+
+  - title: "test(container): implement BeanFactory vs ApplicationContext lifecycle and instantiation benchmark"
+    labels: ["part-1", "test", "container", "benchmark", "hpg-core"]
+    body: |
+      ## Context
+
+      Demonstrate the concrete behavioral difference between a lazy `BeanFactory` and an
+      eager `ApplicationContext`. This is directly testable and separates working Spring
+      knowledge from mechanical Spring usage.
+
+      ## Acceptance Criteria
+
+      - [ ] `com.engine.core.container.BeanFactoryVsContextDemo` instantiates both a `DefaultListableBeanFactory` and an `AnnotationConfigApplicationContext` against the same `@Configuration` class
+      - [ ] Test asserts `BeanFactory` does not instantiate a `@Component` until `getBean()` is invoked. Constructor invocations counted via `AtomicInteger`
+      - [ ] Test asserts `ApplicationContext` eagerly instantiates all singleton-scoped beans during refresh
+      - [ ] Test demonstrates eager failure semantics: a `@Bean` method that throws `IllegalStateException` fails at refresh for `ApplicationContext`, but only at `getBean()` for `BeanFactory`
+      - [ ] Benchmark reports, using JMH 1.37 (preferred) or `@RepeatedTest(100)` with `System.nanoTime()`:
+        - Time to first `getBean()` for `BeanFactory` versus context refresh for `ApplicationContext`
+        - Resident bean count after refresh for each
+      - [ ] Results recorded in `docs/part1/beanfactory-vs-context.md` with a table and interpretation
+
+      ## Technical Notes
+
+      - `DefaultListableBeanFactory` requires a manually registered `ConfigurationClassPostProcessor` to read `@Configuration`. This registration is itself part of the demonstration
+      - Annotate the benchmark test with `@DirtiesContext` to avoid cross-test contamination
+      - Prefer JMH. If time-boxed, `System.nanoTime()` with warm-up iterations and 95th-percentile reporting is acceptable
+
+      ## Deliverables
+
+      - `hpg-core/src/main/java/com/engine/core/container/BeanFactoryVsContextDemo.java`
+      - `hpg-core/src/test/java/com/engine/core/container/BeanFactoryVsContextBenchmarkTest.java`
+      - `docs/part1/beanfactory-vs-context.md`
+
+      ## References
+
+      - Blueprint: Part 1, Section 1, Container Comparison
+      - Depends on: issue 2
+
+  - title: "feat(container): implement CustomVenuePostProcessor for seat grid layout metadata validation"
+    labels: ["part-1", "feat", "container", "lifecycle", "hpg-core"]
+    body: |
+      ## Context
+
+      A `BeanPostProcessor` runs before and after every bean's initialization callback.
+      Use this hook to validate seat grid consistency for beans annotated with a custom
+      `@VenueLayout` annotation, before the bean is exposed to the context. This mirrors
+      the blueprint's `CustomVenuePostProcessor` and demonstrates lifecycle interception.
+
+      ## Acceptance Criteria
+
+      - [ ] Custom annotation `@VenueLayout(rows, columns, capacity)` in `com.engine.core.container`
+      - [ ] `CustomVenuePostProcessor implements BeanPostProcessor`
+      - [ ] `postProcessBeforeInitialization` returns the bean unchanged
+      - [ ] `postProcessAfterInitialization` inspects beans annotated with `@VenueLayout`:
+        - [ ] Rejects `rows * columns != capacity` with a descriptive `BeanCreationException`
+        - [ ] Rejects `rows <= 0` or `columns <= 0`
+        - [ ] Logs a `TRACE` line per accepted layout with the bean name and computed capacity
+      - [ ] Test contains three `@Component` fixtures: one valid, one with mismatched capacity, one with invalid dimensions
+      - [ ] Valid fixture resolves from context without error
+      - [ ] Invalid fixtures fail during refresh, and the exception message contains the annotation coordinates that violated the rule
+
+      ## Technical Notes
+
+      - Register the post-processor as a `static @Bean` in `AppConfig` to guarantee it runs before other `BeanPostProcessor` instances
+      - Use `AnnotationUtils.findAnnotation(bean.getClass(), VenueLayout.class)` for meta-annotation safety
+      - Do not mutate the bean. Return the same instance unless you deliberately choose the wrapping-proxy variant, which must be documented
+
+      ## Deliverables
+
+      - `hpg-core/src/main/java/com/engine/core/container/VenueLayout.java`
+      - `hpg-core/src/main/java/com/engine/core/container/CustomVenuePostProcessor.java`
+      - `hpg-core/src/test/java/com/engine/core/container/CustomVenuePostProcessorTest.java`
+
+      ## References
+
+      - Blueprint: Part 1, Section 1, Lifecycle Interception
+      - Depends on: issue 2
+
+  - title: "test(container): construct 3-level cache demonstration and constructor injection circular dependency defense"
+    labels: ["part-1", "test", "container", "docs", "hpg-core"]
+    body: |
+      ## Context
+
+      Spring's `DefaultSingletonBeanRegistry` uses a three-level cache (singletonObjects,
+      earlySingletonObjects, singletonFactories) to resolve setter-injection circular
+      dependencies. Constructor injection cannot be resolved the same way, and Spring
+      fails fast at startup. This issue produces a reproducible demonstration of both
+      behaviors and establishes constructor injection as the enforced standard in `hpg-core`.
+
+      ## Acceptance Criteria
+
+      - [ ] Three beans wired `A -> B -> C -> A` with setter injection resolve without error
+      - [ ] The same three beans wired with constructor injection throw `BeanCurrentlyInCreationException` at refresh
+      - [ ] A test asserts the exact exception type and that the message names the offending bean
+      - [ ] A debug-level test inspects and logs the three singleton cache maps during resolution
+      - [ ] `docs/part1/circular-dependency-analysis.md` documents:
+        - The three map names and their roles
+        - Why constructor injection fails when no early reference can be published
+        - Why `@Lazy` on a constructor parameter is the sanctioned workaround
+        - Why `@Lazy` is nevertheless forbidden in `hpg-core`
+      - [ ] An ArchUnit test fails the build if any `@Component` under `com.engine.core` uses field injection (`@Autowired` on a non-final field)
+
+      ## Technical Notes
+
+      - The three cache maps live in `DefaultSingletonBeanRegistry`. Inspect via reflection for the demonstration
+      - `@Lazy` on a constructor parameter injects a proxy, which hides the cycle but does not eliminate it
+      - The ArchUnit rule is the enforcement mechanism. Constructor injection is the project standard, not a stylistic preference
+
+      ## Deliverables
+
+      - `hpg-core/src/main/java/com/engine/core/container/CircularDependencyDemo.java`
+      - `hpg-core/src/main/java/com/engine/core/container/CircularDependencyConstructorDemo.java`
+      - `hpg-core/src/test/java/com/engine/core/container/CircularDependencyTest.java`
+      - `hpg-core/src/test/java/com/engine/core/container/ConstructorInjectionArchTest.java`
+      - `docs/part1/circular-dependency-analysis.md`
+
+      ## References
+
+      - Blueprint: Part 1, Section 1, Injection Contracts
+      - Depends on: issues 2, 4
+
+  - title: "feat(strategy): implement dynamic SeatAllocationStrategy resolution via @Qualifier, @Primary, and map injection"
+    labels: ["part-1", "feat", "strategy", "container", "hpg-core"]
+    body: |
+      ## Context
+
+      Seat allocation has multiple algorithms: contiguous block selection, best-available
+      scatter, and spread. Rather than branching on an enum at call time, the strategy is
+      resolved at injection time using three Spring features: `@Primary`, `@Qualifier`,
+      and `Map<String, Strategy>` injection. This is the blueprint's Dynamic Selection
+      requirement.
+
+      ## Acceptance Criteria
+
+      - [ ] Interface `SeatAllocationStrategy` declares `List<Seat> allocate(Event event, int count)`
+      - [ ] `ContiguousSeatStrategy` annotated `@Component @Qualifier("contiguous")`
+      - [ ] `BestAvailableStrategy` annotated `@Component @Primary`
+      - [ ] `SpreadStrategy` annotated `@Component @Qualifier("spread")`
+      - [ ] `ReservationService` receives all three strategies simultaneously through a single constructor:
+        ```java
+        public ReservationService(
+            @Qualifier("contiguous") SeatAllocationStrategy contiguous,
+            SeatAllocationStrategy primary,
+            Map<String, SeatAllocationStrategy> strategies) { ... }
+        ```
+      - [ ] Test asserts `strategies.keySet()` contains exactly `contiguous`, `bestAvailable`, `spread`
+      - [ ] Test asserts the `primary` parameter resolves to `BestAvailableStrategy`
+      - [ ] Test asserts the `contiguous` parameter resolves to `ContiguousSeatStrategy`
+      - [ ] Javadoc on the constructor documents that the map key is the bean name, not the `@Qualifier` value
+
+      ## Technical Notes
+
+      - Bean names default to the decapitalized class name. `@Qualifier` overrides the name used for lookup but does not change the map key, which is always the bean name
+      - The distinction between qualifier value and map key is a common source of confusion and must be documented in code comments
+      - All three strategy implementations must be stateless. They are singletons and will be shared across concurrent reservation requests
+
+      ## Deliverables
+
+      - `hpg-core/src/main/java/com/engine/core/strategy/SeatAllocationStrategy.java`
+      - `hpg-core/src/main/java/com/engine/core/strategy/ContiguousSeatStrategy.java`
+      - `hpg-core/src/main/java/com/engine/core/strategy/BestAvailableStrategy.java`
+      - `hpg-core/src/main/java/com/engine/core/strategy/SpreadStrategy.java`
+      - `hpg-core/src/test/java/com/engine/core/strategy/StrategyResolutionTest.java`
+
+      ## References
+
+      - Blueprint: Part 1, Section 1, Dynamic Selection
+      - Depends on: issue 2
+
+  - title: "feat(service): design ReservationService with strict constructor DI and hold-release lifecycle hooks"
+    labels: ["part-1", "feat", "service", "lifecycle", "hpg-core"]
+    body: |
+      ## Context
+
+      `ReservationService` is the orchestration point of Part 1. It composes the strategy
+      selected in the previous issue, owns the hold and release lifecycle, and demonstrates
+      `@PostConstruct` and `@PreDestroy` for resource management. It also fixes the project
+      standard: every field is `private final` and set exclusively through the constructor.
+
+      ## Acceptance Criteria
+
+      - [ ] `ReservationService` declared as `@Service`, all fields `private final`
+      - [ ] Constructor accepts the resolved strategies from issue 6 and an `EntityManager`
+      - [ ] No field-level `@Autowired`. Enforced by the ArchUnit rule from issue 5
+      - [ ] `@PostConstruct void warmUp()` preloads the seat grid into an immutable in-memory cache
+      - [ ] `@PreDestroy void releaseAll()` releases every outstanding hold, is idempotent, and logs the count released
+      - [ ] Public API:
+        - `ReservationHold hold(Long eventId, int seatCount, String userRef)`
+        - `void confirm(Long holdId)`
+        - `void release(Long holdId)`
+      - [ ] `ReservationHold` is a record with `holdId`, `eventId`, `seatIds`, `expiresAt`
+      - [ ] `CheckoutSession` is declared with `@Scope("prototype")` and holds per-request seat selection state
+      - [ ] Unit test verifies the warm-up cache is populated and immutable after `@PostConstruct`
+      - [ ] Integration test verifies `@PreDestroy` releases outstanding holds on context close
+      - [ ] Javadoc documents that `@PreDestroy` is not invoked on prototype-scoped beans
+
+      ## Technical Notes
+
+      - `@PostConstruct` runs after dependency injection but before the bean is exposed. This is the only safe window for cache warm-up
+      - Keep `ReservationService` as a singleton. The cache is the only mutable state and must be thread-safe (`ConcurrentHashMap` with immutable values)
+      - Do not store `EntityManager` as a field on the singleton. Inject `EntityManagerFactory` and obtain a scoped `EntityManager` per operation, or use `@PersistenceContext` correctly if the service will be proxied. Document the choice
+
+      ## Deliverables
+
+      - `hpg-core/src/main/java/com/engine/core/service/ReservationService.java`
+      - `hpg-core/src/main/java/com/engine/core/service/ReservationHold.java`
+      - `hpg-core/src/main/java/com/engine/core/service/CheckoutSession.java`
+      - `hpg-core/src/test/java/com/engine/core/service/ReservationServiceTest.java`
+
+      ## References
+
+      - Blueprint: Part 1, Section 1, Stereotypes and Scopes
+      - Depends on: issues 2, 6
+
+  - title: "feat(aop): implement @RetryOnLockFailure runtime annotation and @Around retry aspect with backoff"
+    labels: ["part-1", "feat", "aop", "hpg-core"]
+    body: |
+      ## Context
+
+      Under high contention, PostgreSQL raises SQLState `40P01` (deadlock detected) and
+      `55P03` (lock not available). Both are transient and should be retried with exponential
+      backoff. This issue introduces a custom runtime annotation and an `@Around` aspect
+      that together implement policy-driven retry behavior without touching business code.
+
+      ## Acceptance Criteria
+
+      - [ ] Runtime annotation `@RetryOnLockFailure(maxAttempts = 3, backoffMs = 50, multiplier = 2.0)`
+      - [ ] Aspect `ConcurrencyRetryAspect` annotated `@Aspect @Component`
+      - [ ] Pointcut `@Around("@annotation(retryOnLockFailure)")` intercepts annotated methods
+      - [ ] Retries only when the thrown cause is one of:
+        - `org.springframework.dao.PessimisticLockingFailureException`
+        - `org.springframework.dao.CannotAcquireLockException`
+        - `java.sql.SQLException` with SQLState `40P01` or `55P03`
+      - [ ] Honors `maxAttempts`. On exhaustion, rethrows the original exception without wrapping
+      - [ ] Backoff formula: `backoffMs * Math.pow(multiplier, attemptIndex)`, capped at 2000 ms
+      - [ ] Each retry logged at `WARN` with attempt number, cause class, and sleep duration
+      - [ ] Thread-safe: jitter uses `ThreadLocalRandom`. No shared mutable state
+      - [ ] Test verifies a method that fails twice then succeeds is invoked exactly three times
+      - [ ] Test verifies a method that always fails rethrows the original cause after `maxAttempts`
+      - [ ] Test verifies a non-retryable exception such as `IllegalArgumentException` is not retried
+
+      ## Technical Notes
+
+      - Use `@Order` so the retry aspect wraps outside the transaction aspect. If it wraps inside, each retry happens within an already-rolled-back transaction and will not succeed
+      - Do not swallow `InterruptedException`. Restore the interrupt flag and rethrow
+      - The aspect must not catch `Error` subclasses
+
+      ## Deliverables
+
+      - `hpg-core/src/main/java/com/engine/core/aop/RetryOnLockFailure.java`
+      - `hpg-core/src/main/java/com/engine/core/aop/ConcurrencyRetryAspect.java`
+      - `hpg-core/src/test/java/com/engine/core/aop/ConcurrencyRetryAspectTest.java`
+
+      ## References
+
+      - Blueprint: Part 1, Section 2, Spring AOP and Proxy Architecture
+      - Depends on: issues 2, 7
+
+  - title: "test(aop): profile proxy generation mechanics and latency overhead (JDK Dynamic Proxy vs CGLIB)"
+    labels: ["part-1", "test", "aop", "proxy", "benchmark", "hpg-core"]
+    body: |
+      ## Context
+
+      Spring generates two kinds of proxies. JDK dynamic proxies require the target to
+      implement at least one interface. CGLIB proxies subclass the target. The choice
+      affects bytecode size, startup cost, and per-call overhead. This issue measures all
+      three and documents when each is selected.
+
+      ## Acceptance Criteria
+
+      - [ ] `InterfaceBackedService` implements a public interface and is eligible for JDK dynamic proxying
+      - [ ] `ConcreteClassService` has no interface and forces CGLIB subclassing
+      - [ ] Both services annotated with `@RetryOnLockFailure` so the aspect is applied and a proxy is created
+      - [ ] `LatencyMonitorAspect` captures per-invocation latency using `System.nanoTime()`
+      - [ ] JMH 1.37 benchmark (or `@RepeatedTest(1000)` with percentile reporting) reports:
+        - Mean, p50, p95, p99 invocation latency for JDK versus CGLIB
+        - Runtime class name and superclass for each proxied bean
+        - Bytecode size of each generated proxy class read from `target/classes`
+      - [ ] `docs/part1/proxy-mechanics.md` documents:
+        - Why JDK proxies cannot proxy classes without interfaces
+        - Why CGLIB cannot proxy final classes or final methods
+        - Why Spring Framework defaults to `proxyTargetClass = true` in Boot 2 and later
+        - The measured overhead delta with a clear interpretation
+
+      ## Technical Notes
+
+      - Force JDK proxies with `@EnableAspectJAutoProxy(proxyTargetClass = false)`
+      - Force CGLIB with `@EnableAspectJAutoProxy(proxyTargetClass = true)`
+      - Use `AopProxyUtils.ultimateTargetClass(bean)` to inspect the underlying target behind the proxy
+      - Do not benchmark without warm-up iterations. JMH enforces this. Hand-rolled loops must warm up for at least 10,000 invocations before measurement
+
+      ## Deliverables
+
+      - `hpg-core/src/main/java/com/engine/core/aop/InterfaceBackedService.java`
+      - `hpg-core/src/main/java/com/engine/core/aop/ConcreteClassService.java`
+      - `hpg-core/src/main/java/com/engine/core/aop/LatencyMonitorAspect.java`
+      - `hpg-core/src/test/java/com/engine/core/aop/ProxyMechanicsBenchmark.java`
+      - `docs/part1/proxy-mechanics.md`
+
+      ## References
+
+      - Blueprint: Part 1, Section 2, Spring AOP and Proxy Architecture
+      - Depends on: issue 8
+
+  - title: "test(tx): construct reproducible unit and integration test for @Transactional self-invocation proxy bypass"
+    labels: ["part-1", "test", "transaction", "proxy", "hpg-core"]
+    body: |
+      ## Context
+
+      A `@Transactional` method called from within the same class does not pass through the
+      Spring proxy. The annotation is silently ignored and the transaction is unmanaged.
+      This is the most common Spring bug in production code. This issue produces a
+      reproducible, assertion-backed demonstration of the bug and the three sanctioned fixes.
+
+      ## Acceptance Criteria
+
+      - [ ] `SelfInvocationProxyTrap` service contains:
+        - `@Transactional public void outer()` inserts a row and then calls `this.inner()`
+        - `@Transactional(propagation = Propagation.REQUIRES_NEW) public void inner()` inserts a row and then throws
+      - [ ] Buggy test: after `outer()` throws, assert the outer insert was not rolled back, proving `inner()` ran without its own transaction and the outer work was committed before the exception propagated
+      - [ ] Fix 1 test: inject the bean into itself with `@Autowired` and call `self.inner()`. Assert correct rollback semantics
+      - [ ] Fix 2 test: extract `inner()` into a separate `@Service` (`AuditLoggerService`) and inject it. Assert correct rollback semantics
+      - [ ] Fix 3 test: use `AopContext.currentProxy()` with `@EnableAspectJAutoProxy(exposeProxy = true)`. Assert correct rollback semantics
+      - [ ] `docs/part1/self-invocation-trap.md` documents:
+        - Why the proxy is bypassed (JVM `invokespecial` versus proxy dispatch)
+        - Bytecode-level explanation with `javap -c` output referenced
+        - Which fix `hpg-core` adopts and why (separate service is preferred)
+
+      ## Technical Notes
+
+      - Use Testcontainers 2.0.5 with PostgreSQL for the integration test. H2 does not reproduce rollback semantics faithfully under concurrent access
+      - Wrap the test in `@SpringJUnitConfig` with the real `JpaTransactionManager` from issue 2
+      - Assert rollback by reading row counts through a fresh `EntityManager` after the exception
+      - `exposeProxy = true` is discouraged in production code. Document the tradeoff explicitly
+
+      ## Deliverables
+
+      - `hpg-core/src/main/java/com/engine/core/service/SelfInvocationProxyTrap.java`
+      - `hpg-core/src/main/java/com/engine/core/service/AuditLoggerService.java`
+      - `hpg-core/src/test/java/com/engine/core/service/SelfInvocationTrapTest.java`
+      - `docs/part1/self-invocation-trap.md`
+
+      ## References
+
+      - Blueprint: Part 1, Section 3, Transaction Demarcation and Edge Cases
+      - Depends on: issues 2, 7
+
+  - title: "feat(tx): implement isolated audit logging via Propagation.REQUIRES_NEW boundary demarcation"
+    labels: ["part-1", "feat", "transaction", "propagation", "hpg-core"]
+    body: |
+      ## Context
+
+      Audit records and failure metrics must survive a rolled-back business transaction.
+      `Propagation.REQUIRES_NEW` suspends the outer transaction, opens an independent one,
+      and commits it independently. This issue wires that boundary into `ReservationService`
+      and documents the connection-pool implications.
+
+      ## Acceptance Criteria
+
+      - [ ] `AuditLoggerService.record(String action, String payload)` annotated `@Transactional(propagation = Propagation.REQUIRES_NEW)`
+      - [ ] `AuditLoggerService.recordFailure(String reason)` also `REQUIRES_NEW`
+      - [ ] `ReservationService.confirm(...)` invokes audit before the business write and again on failure
+      - [ ] Integration test forces the outer transaction to roll back and asserts the audit row persists
+      - [ ] Integration test asserts the audit method executes on a distinct JDBC connection by inspecting `TransactionSynchronizationManager.getCurrentTransactionName()` inside the audit method
+      - [ ] Test proves a nested `REQUIRES_NEW` inside `REQUIRED` does not observe uncommitted outer writes
+      - [ ] `docs/part1/propagation-boundaries.md` documents all seven propagation modes with a decision table covering when each is appropriate
+
+      ## Technical Notes
+
+      - `REQUIRES_NEW` acquires a second JDBC connection from the pool. Under high concurrency this doubles pool pressure. Surface this in the documentation and connect it to the HikariCP saturation issue in Part 2 (issue 24)
+      - `AuditLoggerService` must be a separate bean from `ReservationService`, as established in issue 10
+      - For read-only audit queries, consider `Propagation.NOT_SUPPORTED` rather than `REQUIRES_NEW`
+
+      ## Deliverables
+
+      - `hpg-core/src/main/java/com/engine/core/service/AuditLoggerService.java` (extended)
+      - `hpg-core/src/main/java/com/engine/core/service/ReservationService.java` (updated)
+      - `hpg-core/src/test/java/com/engine/core/service/PropagationBoundariesTest.java`
+      - `docs/part1/propagation-boundaries.md`
+
+      ## References
+
+      - Blueprint: Part 1, Section 3, Propagation Boundaries
+      - Depends on: issues 7, 10
+
+  - title: "feat(web): bootstrap zero-XML DispatcherServlet via AbstractAnnotationConfigDispatcherServletInitializer"
+    labels: ["part-1", "feat", "web", "servlet", "hpg-core"]
+    body: |
+      ## Context
+
+      Before Spring Boot, web applications were wired through `web.xml` or a
+      `WebApplicationInitializer`. This issue uses the modern, zero-XML
+      `AbstractAnnotationConfigDispatcherServletInitializer` to bootstrap the
+      `DispatcherServlet` programmatically and expose the servlet container lifecycle
+      that Spring Boot otherwise hides.
+
+      ## Acceptance Criteria
+
+      - [ ] `WebAppInitializer` extends `AbstractAnnotationConfigDispatcherServletInitializer` and overrides:
+        - `getRootConfigClasses()` returns `AppConfig` and `PersistenceConfig`
+        - `getServletConfigClasses()` returns `WebMvcConfig`
+        - `getServletMappings()` returns `"/api/*"`
+      - [ ] `@EnableWebMvc` on `WebMvcConfig`. No `@EnableAutoConfiguration`
+      - [ ] `InternalResourceViewResolver` configured even if only JSON is served, to prove MVC wiring
+      - [ ] `MappingJackson2HttpMessageConverter` registered explicitly
+      - [ ] Module packaged as WAR and deployed to Tomcat 10 or later in a documented manual step
+      - [ ] `GET /api/health` returns `200 OK` with body `{"status":"UP"}`
+      - [ ] `MockMvc` standalone test renders the health response without a running servlet container
+
+      ## Technical Notes
+
+      - Tomcat 10 and later require `jakarta.*` namespace. Align with Jakarta EE 11 pinned in issue 1
+      - Do not add `spring-boot-starter-web`. The purpose is to expose manual wiring
+      - Document the servlet container lifecycle in `docs/part1/dispatcher-servlet-bootstrap.md`, covering `ServletContext` initialization order and the `WebApplicationInitializer` SPI
+
+      ## Deliverables
+
+      - `hpg-core/src/main/java/com/engine/core/config/WebMvcConfig.java`
+      - `hpg-core/src/main/java/com/engine/core/web/WebAppInitializer.java`
+      - `hpg-core/src/main/java/com/engine/core/web/HealthController.java`
+      - `hpg-core/src/test/java/com/engine/core/web/HealthControllerTest.java`
+      - `docs/part1/dispatcher-servlet-bootstrap.md`
+
+      ## References
+
+      - Blueprint: Part 1, Section 4, DispatcherServlet and Web Internals
+      - Depends on: issue 2
+
+  - title: "feat(web): implement QueueSessionArgumentResolver for header extraction and queue validation"
+    labels: ["part-1", "feat", "web", "resolver", "hpg-core"]
+    body: |
+      ## Context
+
+      Spring MVC resolves controller method arguments through an ordered chain of
+      `HandlerMethodArgumentResolver` instances. This issue adds a custom resolver that
+      extracts `X-Queue-Session` from the request header, validates its shape, and injects
+      it as a strongly typed parameter. This is the blueprint's `QueueSessionArgumentResolver`
+      and the pure-Spring precursor to the Part 3 JWT filter.
+
+      ## Acceptance Criteria
+
+      - [ ] Record `QueueSession(String sessionId, Instant issuedAt, String seatBucket)` in `com.engine.core.web`
+      - [ ] Parameter-level annotation `@QueueSessionHeader` with `@Target(ElementType.PARAMETER)` and `@Retention(RetentionPolicy.RUNTIME)`
+      - [ ] `QueueSessionArgumentResolver` implements `HandlerMethodArgumentResolver`:
+        - `supportsParameter` returns true only when the parameter carries `@QueueSessionHeader` and its type is `QueueSession`
+        - `resolveArgument` reads `X-Queue-Session`, decodes it, and validates required claims
+        - Missing header raises `MissingRequestHeaderException`
+        - Malformed header raises a custom `InvalidQueueSessionException` that maps to `400 Bad Request`
+      - [ ] Registered in `WebMvcConfig#addArgumentResolvers`
+      - [ ] Controller method:
+        ```java
+        @GetMapping("/api/seat-map")
+        public SeatMap seatMap(@QueueSessionHeader QueueSession session) { ... }
+        ```
+      - [ ] Test verifies a valid header resolves to a populated `QueueSession`
+      - [ ] Test verifies a missing header produces `400 Bad Request`
+      - [ ] Test verifies a malformed header produces `400 Bad Request` with a descriptive body
+      - [ ] `docs/part1/custom-argument-resolvers.md` documents the resolver chain order and where custom resolvers are inserted
+
+      ## Technical Notes
+
+      - Custom resolvers registered via `addArgumentResolvers` are appended after built-in resolvers. Verify precedence when a parameter could be resolved by multiple resolvers
+      - Do not read the header inside the controller method. The resolver is the sole extraction point
+      - The header encoding format should be documented in the resolver's Javadoc, including the exact claim names expected
+
+      ## Deliverables
+
+      - `hpg-core/src/main/java/com/engine/core/web/QueueSession.java`
+      - `hpg-core/src/main/java/com/engine/core/web/QueueSessionHeader.java`
+      - `hpg-core/src/main/java/com/engine/core/web/QueueSessionArgumentResolver.java`
+      - `hpg-core/src/main/java/com/engine/core/web/InvalidQueueSessionException.java`
+      - `hpg-core/src/main/java/com/engine/core/web/SeatMapController.java`
+      - `hpg-core/src/test/java/com/engine/core/web/QueueSessionArgumentResolverTest.java`
+      - `docs/part1/custom-argument-resolvers.md`
+
+      ## References
+
+      - Blueprint: Part 1, Section 4, DispatcherServlet and Web Internals
+      - Depends on: issue 12
+
+  - title: "docs: document pure spring architecture, proxy boundaries, and transaction lifecycle findings"
+    labels: ["part-1", "docs", "hpg-core"]
+    body: |
+      ## Context
+
+      Part 1 has produced numerous under-the-hood findings: container lifecycle semantics,
+      proxy generation mechanics, transaction demarcation behavior, and MVC wiring. This
+      issue consolidates them into a single architecture document that serves as the
+      reference for Parts 2 and 3, and as the portfolio artifact for this milestone.
+
+      ## Acceptance Criteria
+
+      - [ ] `docs/part1/README.md` published and serves as the milestone landing page
+      - [ ] Each of the following documents exists and is linked from the README:
+        - `beanfactory-vs-context.md` (from issue 3)
+        - `circular-dependency-analysis.md` (from issue 5)
+        - `proxy-mechanics.md` (from issue 9)
+        - `self-invocation-trap.md` (from issue 10)
+        - `propagation-boundaries.md` (from issue 11)
+        - `dispatcher-servlet-bootstrap.md` (from issue 12)
+        - `custom-argument-resolvers.md` (from issue 13)
+      - [ ] A `container-lifecycle.md` document is added, covering:
+        - `BeanFactory` versus `ApplicationContext` initialization order
+        - `BeanPostProcessor` invocation points relative to `@PostConstruct` and `InitializingBean`
+        - Bean scope lifetimes and destruction callbacks
+      - [ ] A `transaction-lifecycle.md` document is added, covering:
+        - The interaction between `@Transactional` and the AOP proxy chain
+        - Aspect ordering rules and the wrapping hierarchy
+        - Common failure modes with reproduction references to the corresponding tests
+      - [ ] The milestone README contains a diagram (Mermaid or ASCII) illustrating the container, proxy, and transaction layers
+      - [ ] Every document lists the related GitHub issue number at the top
+
+      ## Technical Notes
+
+      - Prefer Mermaid diagrams embedded in Markdown. GitHub renders them natively without additional tooling
+      - Each document should be self-contained. A reader should be able to understand the topic without navigating to other files
+      - Cross-link aggressively. Part 1 findings will be referenced repeatedly in Parts 2 and 3
+
+      ## Deliverables
+
+      - `docs/part1/README.md`
+      - `docs/part1/container-lifecycle.md`
+      - `docs/part1/transaction-lifecycle.md`
+      - Cross-links and content finalized in the seven documents listed above
+
+      ## References
+
+      - Blueprint: Part 1, all sections
+      - Depends on: issues 3, 5, 9, 10, 11, 12, 13
