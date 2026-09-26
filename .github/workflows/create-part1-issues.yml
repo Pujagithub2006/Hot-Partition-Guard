@@ -61,8 +61,12 @@ jobs:
 
       - name: Validate backlog structure
         run: |
-          yq eval '.issues | type' issues/part1-backlog.yml | grep -qx sequence \
-            || { echo "Expected top-level 'issues' to be a sequence"; exit 1; }
+          ISSUES_TYPE=$(yq eval '.issues | type' issues/part1-backlog.yml)
+          echo "Issues node type: ${ISSUES_TYPE}"
+          if [ "$ISSUES_TYPE" != "!!seq" ]; then
+            echo "Expected top-level 'issues' to be a sequence (got ${ISSUES_TYPE})"
+            exit 1
+          fi
           COUNT=$(yq eval '.issues | length' issues/part1-backlog.yml)
           echo "Backlog contains ${COUNT} issue definitions"
           if [ "$COUNT" -eq 0 ]; then
@@ -87,8 +91,8 @@ jobs:
               echo "Label exists, updating: $NAME"
               gh label edit "$NAME" --repo "$REPO" --color "$COLOR" --description "$DESC"
             else
-              echo "Creating label: $NAME"
-              gh label create "$NAME" --repo "$REPO" --color "$COLOR" --description "$DESC"
+              echo "Upserting label: $NAME"
+              gh label create "$NAME" --repo "$REPO" --color "$COLOR" --description "$DESC" --force
             fi
           done
 
@@ -114,10 +118,10 @@ jobs:
             EXISTING=$(gh issue list \
               --repo "$REPO" \
               --state all \
-              --search "\"$TITLE\" in:title" \
+              --limit 100 \
               --json number,title \
               --jq ".[] | select(.title == \"$TITLE\") | .number" \
-              | head -n 1)
+              | head -n 1 || true)
 
             if [ -n "$EXISTING" ]; then
               echo "Skipped: issue already exists as #${EXISTING}"
