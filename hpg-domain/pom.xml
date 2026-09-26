@@ -13,10 +13,16 @@
 
     <artifactId>hpg-domain</artifactId>
     <name>HPG :: Domain</name>
-    <description>Pure domain model. No Spring. No JPA. No infrastructure.</description>
+    <description>Pure domain model. Entities annotated with JPA, no infrastructure.</description>
 
     <dependencies>
-        <!-- ONLY test dependencies. Zero runtime dependencies. -->
+        <!-- JPA annotations only — no Hibernate, no Spring -->
+        <dependency>
+            <groupId>jakarta.persistence</groupId>
+            <artifactId>jakarta.persistence-api</artifactId>
+        </dependency>
+
+        <!-- Test -->
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>

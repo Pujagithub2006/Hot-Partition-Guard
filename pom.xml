@@ -19,8 +19,12 @@
     <modules>
         <module>hpg-domain</module>
         <module>hpg-core</module>
+        <!-- Part 2: Spring Boot platform
         <module>hpg-platform</module>
+        -->
+        <!-- Part 3: Spring Security perimeter
         <module>hpg-security</module>
+        -->
     </modules>
 
     <properties>
@@ -34,8 +38,8 @@
         <!-- Spring Boot 4 (platform + security only) -->
         <spring-boot.version>4.0.6</spring-boot.version>
 
-        <!-- Hibernate ORM 7.2 -->
-        <hibernate.version>7.2.24.Final</hibernate.version>
+        <!-- Hibernate ORM 7.4 (current stable) -->
+        <hibernate.version>7.4.10.Final</hibernate.version>
 
         <!-- Jakarta EE 11 APIs -->
         <jakarta.persistence.version>3.2.0</jakarta.persistence.version>
@@ -44,15 +48,18 @@
         <!-- Infrastructure -->
         <hikaricp.version>7.1.0</hikaricp.version>
         <postgresql.version>42.7.13</postgresql.version>
-        <slf4j.version>2.0.16</slf4j.version>
-        <logback.version>1.5.12</logback.version>
-        <flyway.version>12.0.0</flyway.version>
+        <slf4j.version>2.0.20</slf4j.version>
+        <logback.version>1.6.4</logback.version>
+        <flyway.version>12.11.0</flyway.version>
 
         <!-- Testing -->
         <junit.version>5.11.4</junit.version>
         <assertj.version>3.27.2</assertj.version>
-        <testcontainers.version>1.20.4</testcontainers.version>
+        <testcontainers.version>2.0.5</testcontainers.version>
         <jmh.version>1.37</jmh.version>
+
+        <!-- AspectJ -->
+        <aspectj.version>1.9.22.1</aspectj.version>
 
         <!-- Plugins -->
         <maven-surefire.version>3.5.2</maven-surefire.version>
@@ -83,7 +90,7 @@
                 <scope>import</scope>
             </dependency>
 
-            <!-- Spring Boot 4 BOM -->
+            <!-- Spring Boot 4 BOM (only used by hpg-platform and hpg-security) -->
             <dependency>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-dependencies</artifactId>
@@ -143,6 +150,13 @@
                 <version>${logback.version}</version>
             </dependency>
 
+            <!-- AspectJ -->
+            <dependency>
+                <groupId>org.aspectj</groupId>
+                <artifactId>aspectjweaver</artifactId>
+                <version>${aspectj.version}</version>
+            </dependency>
+
             <!-- Testing -->
             <dependency>
                 <groupId>org.junit</groupId>
@@ -157,12 +171,24 @@
                 <version>${assertj.version}</version>
                 <scope>test</scope>
             </dependency>
+            <!-- Testcontainers 2.x (module coordinates changed in 2.0) -->
             <dependency>
                 <groupId>org.testcontainers</groupId>
-                <artifactId>testcontainers-bom</artifactId>
+                <artifactId>testcontainers</artifactId>
                 <version>${testcontainers.version}</version>
-                <type>pom</type>
-                <scope>import</scope>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.testcontainers</groupId>
+                <artifactId>testcontainers-postgresql</artifactId>
+                <version>${testcontainers.version}</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.testcontainers</groupId>
+                <artifactId>testcontainers-junit-jupiter</artifactId>
+                <version>${testcontainers.version}</version>
+                <scope>test</scope>
             </dependency>
         </dependencies>
     </dependencyManagement>

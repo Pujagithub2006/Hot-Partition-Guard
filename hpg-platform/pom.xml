@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>com.engine</groupId>
+        <artifactId>hot-partition-guard</artifactId>
+        <version>1.0.0-SNAPSHOT</version>
+    </parent>
+    <artifactId>hpg-platform</artifactId>
+    <name>HPG :: Platform</name>
+    <description>Part 2 — Spring Boot 4 platform (placeholder)</description>
+</project>
