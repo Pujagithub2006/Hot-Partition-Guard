@@ -38,12 +38,21 @@ jobs:
 
       - name: Enforce no Spring Boot in hpg-core
         run: |
-          OUTPUT=$(mvn -B -q -pl hpg-core dependency:tree "-Dincludes=org.springframework.boot" || true)
+          OUTPUT=$(mvn -B -q dependency:tree "-Dincludes=org.springframework.boot" || true)
           if echo "$OUTPUT" | grep -q "org.springframework.boot"; then
             echo "FAIL: hpg-core depends on Spring Boot. This violates the Part 1 contract."
+            echo "$OUTPUT"
             exit 1
           fi
           echo "OK: hpg-core is free of Spring Boot dependencies."
+
+      - name: Upload Surefire reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: surefire-reports
+          path: '**/target/surefire-reports/**'
+          if-no-files-found: ignore
 
   integration:
     name: Integration Tests (Testcontainers)
@@ -64,8 +73,11 @@ jobs:
       - name: Verify Docker is available
         run: docker info
 
+      - name: Build and install modules
+        run: mvn -B -q clean install -DskipTests
+
       - name: Run integration tests
-        run: mvn -B -q -pl hpg-core failsafe:integration-test failsafe:verify
+        run: mvn -B -q failsafe:integration-test failsafe:verify
 
       - name: Upload Failsafe reports
         if: always()
