@@ -5,6 +5,7 @@ import com.zaxxer.hikari.HikariDataSource;
 import jakarta.persistence.EntityManagerFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.env.Environment;
 import org.springframework.dao.annotation.PersistenceExceptionTranslationPostProcessor;
 import org.springframework.orm.jpa.JpaTransactionManager;
 import org.springframework.orm.jpa.JpaVendorAdapter;
@@ -19,12 +20,14 @@ import java.util.Properties;
 public class PersistenceConfig {
 
     @Bean
-    public DataSource dataSource() {
+    public DataSource dataSource(Environment env) {
         HikariConfig cfg = new HikariConfig();
 
-        cfg.setJdbcUrl(System.getProperty("jdbc.url", System.getenv().getOrDefault("JDBC_URL", "jdbc:postgresql://localhost:5432/hpg")));
-        cfg.setUsername(System.getProperty("jdbc.username", System.getenv().getOrDefault("JDBC_USERNAME", "hpg")));
-        cfg.setPassword(System.getProperty("jdbc.password", System.getenv().getOrDefault("JDBC_PASSWORD", "hpg")));
+        // Reads from Spring Environment (picks up @DynamicPropertySource, system props, and env vars)
+        cfg.setJdbcUrl(env.getProperty("jdbc.url", "jdbc:postgresql://localhost:5432/hpg"));
+        cfg.setUsername(env.getProperty("jdbc.username", "hpg"));
+        cfg.setPassword(env.getProperty("jdbc.password", "hpg"));
+
         cfg.setDriverClassName("org.postgresql.Driver");
         cfg.setMaximumPoolSize(10);
         cfg.setMinimumIdle(2);
@@ -46,7 +49,7 @@ public class PersistenceConfig {
     }
 
     @Bean
-    public LocalContainerEntityManagerFactoryBean entityManagerFactory(DataSource dataSource, JpaVendorAdapter jpaVendorAdapter) {
+    public LocalContainerEntityManagerFactoryBean entityManagerFactory(DataSource dataSource, JpaVendorAdapter jpaVendorAdapter, Environment env) {
         LocalContainerEntityManagerFactoryBean emf = new LocalContainerEntityManagerFactoryBean();
 
         emf.setDataSource(dataSource);
@@ -55,7 +58,8 @@ public class PersistenceConfig {
         emf.setPersistenceUnitName("hpg-pu");
 
         Properties props = new Properties();
-        props.put("hibernate.hbm2ddl.auto", "validate");
+        // Allow @TestPropertySource(properties = {"hibernate.hbm2ddl.auto=create-drop"}) from the test to override default "validate"
+        props.put("hibernate.hbm2ddl.auto", env.getProperty("hibernate.hbm2ddl.auto", "validate"));
         props.put("hibernate.dialect", "org.hibernate.dialect.PostgreSQLDialect");
         props.put("hibernate.format_sql", "true");
         props.put("hibernate.jdbc.time_zone", "UTC");
