@@ -73,6 +73,9 @@ jobs:
       - name: Verify Docker is available
         run: docker info
 
+      - name: Build and install modules
+        run: mvn -B -q clean install -DskipTests
+
       - name: Run integration tests
         run: mvn -B -q failsafe:integration-test failsafe:verify
 
